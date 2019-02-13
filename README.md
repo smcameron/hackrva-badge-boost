@@ -1,6 +1,6 @@
 
 This is a basic intro about how to add apps to the HackRVA badge, and how
-to do so in such a way that most of your work of compiline, testing, and
+to do so in such a way that most of your work of compiling, testing, and
 debugging can be done on linux rather than on the badge which is quite a
 bit more convenient.
 
@@ -20,13 +20,17 @@ details. Ask in the badge slack channel.)
 
 Step 1: Clone the linux badge surrogate environment:
 
-	`git clone git@github.com:smcameron/hackrva-badge-boost.git`
+```
+	git clone git@github.com:smcameron/hackrva-badge-boost.git
+```
 
 Step 2: Write your code:
 
-	`cd hackrva-badge-boost`
+```
+	cd hackrva-badge-boost
 
-	Check `sample_app/sample_app.c` and `Makefile` to see an example.
+	Check sample_app/sample_app.c and Makefile to see an example.
+```
 
 There will be a few linux specific bits which you should surround by
 
