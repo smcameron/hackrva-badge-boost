@@ -1,10 +1,13 @@
 
-This is a basic intro about how to add apps to the HackRVA badge.
+This is a basic intro about how to add apps to the HackRVA badge, and how
+to do so in such a way that most of your work of compiline, testing, and
+debugging can be done on linux rather than on the badge which is quite a
+bit more convenient.
 
 *Warning:  The sample app doesn't actually work on the badge yet for some
 reason.  I still need to debug that.*
 
-I am assuming you're working on linux.  I have created a linux environment
+I have created a linux environment
 that mimics much of the badge environment which allows you to develop badge
 applications on linux without having to flash the code to the badge to check
 every little thing. When you are reasonably sure that your code is working,
@@ -13,7 +16,7 @@ real badge environment.
 
 Step 0: Install the compiler on your linux laptop. (I will assume here
 that you've already done that.  It's not hard, but I don't remember the
-details. Ask in the badge slack channel.) 
+details. Ask in the badge slack channel.)
 
 Step 1: Clone the linux badge surrogate environment:
 
@@ -94,6 +97,22 @@ Then later in your code, you can say:
 
 and on the badge, this will do nothing and generate no code, while on
 linux, it will call linux_function1.
+
+
+Step 4: Build and run your app on linux:
+
+```bash
+you@yourlinuxbox ~/github/hackrva-badge-boost $ make
+cc -pthread -fsanitize=address -Wall --pedantic -g -pthread -isystem /usr/include/gtk-2.0 -isystem /usr/lib/x86_64-linux-gnu/gtk-2.0/include -isystem /usr/include/atk-1.0 -isystem /usr/include/cairo -isystem /usr/include/gdk-pixbuf-2.0 -isystem /usr/include/pango-1.0 -isystem /usr/include/gio-unix-2.0/ -isystem /usr/include/freetype2 -isystem /usr/include/glib-2.0 -isystem /usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/pixman-1 -isystem /usr/include/libpng12 -isystem /usr/include/harfbuzz   -c -I linux linux/linuxcompat.c -o linux/linuxcompat.o
+cc -pthread -fsanitize=address -Wall --pedantic -g -c linux/bline.c -o linux/bline.o
+cc -pthread -fsanitize=address -Wall --pedantic -g -pthread -isystem /usr/include/gtk-2.0 -isystem /usr/lib/x86_64-linux-gnu/gtk-2.0/include -isystem /usr/include/atk-1.0 -isystem /usr/include/cairo -isystem /usr/include/gdk-pixbuf-2.0 -isystem /usr/include/pango-1.0 -isystem /usr/include/gio-unix-2.0/ -isystem /usr/include/freetype2 -isystem /usr/include/glib-2.0 -isystem /usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/pixman-1 -isystem /usr/include/libpng12 -isystem /usr/include/harfbuzz   linux/linuxcompat.o linux/bline.o -o sample_app/sample_app sample_app/sample_app.c -lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgio-2.0 -lpangoft2-1.0 -lpangocairo-1.0 -lgdk_pixbuf-2.0 -lcairo -lpango-1.0 -lfontconfig -lgobject-2.0 -lglib-2.0 -lfreetype   -pthread -lgthread-2.0 -lglib-2.0
+you@yourlinuxbox ~/github/hackrva-badge-boost $
+you@yourlinuxbox ~/github/hackrva-badge-boost $ sample_app/sample_app
+````
+
+<p style="text-align: center;">
+[!image of sample_app running](https://github.com/smcameron/hackrva-badge-boost/tree/master/badgeboost.jpg)
+</p>
 
 
 Step 4:  Get your app running on the badge.
