@@ -111,7 +111,7 @@ you@yourlinuxbox ~/github/hackrva-badge-boost $ sample_app/sample_app
 ````
 
 <p style="text-align: center;">
-[!image of sample_app running](https://github.com/smcameron/hackrva-badge-boost/tree/master/badgeboost.jpg)
+[!image of sample_app running](badgeboost.jpg)
 </p>
 
 
