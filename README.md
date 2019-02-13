@@ -110,10 +110,7 @@ you@yourlinuxbox ~/github/hackrva-badge-boost $
 you@yourlinuxbox ~/github/hackrva-badge-boost $ sample_app/sample_app
 ````
 
-<p style="text-align: center;">
-![image of sample_app running](/badgeboost.jpg?raw=true)
-</p>
-
+![image of sample_app running](https://raw.githubusercontent.com/smcameron/hackrva-badge-boost/master/badgeboost.jpg)
 
 Step 4:  Get your app running on the badge.
 
