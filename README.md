@@ -65,7 +65,7 @@ than on linux.
 
 Use a pattern like this:
 
-```
+```c
 	#ifdef __linux__
 	#include <some_linux_header_file.h>
 	#else
@@ -78,7 +78,7 @@ but on the badge you don't need such a function (or vice versa).
 
 For such situations you can do something like this:
 
-```
+```c
 	#ifdef __linux__
 	#define LINUX_FUNCTION1 do { linux_function1(); } while (0)
 	#else
