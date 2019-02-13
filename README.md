@@ -4,9 +4,6 @@ to do so in such a way that most of your work of compiling, testing, and
 debugging can be done on linux rather than on the badge which is quite a
 bit more convenient.
 
-*Warning:  The sample app doesn't actually work on the badge yet for some
-reason.  I still need to debug that.*
-
 I have created a linux environment
 that mimics much of the badge environment which allows you to develop badge
 applications on linux without having to flash the code to the badge to check
@@ -164,11 +161,44 @@ index 175d1d4..f0aad9a 100644
 6. Copy your source files from the hackrva-badge-boost project into the `badge2019interp/badge_apps` project.
 You don't need to copy any of the linux/\* files.
 
-7. Build it for the badge...
+7. Disable other apps.  If you're using the free compiler, and it complains
+'...Compiler option (Optimize for size) ignored ...", then you may have to disable
+other apps for your app to fit. If your app is too big, the badge will crash loop.
+I don't know a way to check beforehand if your app is too big.
+
+For example, to disable the maze app, comment out the #include of it's header file
+and the entry in the games_m[] array, like so:
+
+```diff
+diff --git a/src/menu.c b/src/menu.c
+index 15d2a89..30f9132 100644
+--- a/src/menu.c
++++ b/src/menu.c
+@@ -16,7 +16,7 @@
+ #include "blinkenlights.h"
+ #include "adc.h"
+ #include "sample_app.h"
+-#include "maze.h"
++// #include "maze.h"
+ #include "sample_app.h"
+ 
+ #define MAIN_MENU_BKG_COLOR GREY2
+@@ -465,7 +465,7 @@ const struct menu_t games_m[] = {
+    {"Blinkenlights", VERT_ITEM|DEFAULT_ITEM, FUNCTION, {(struct menu_t *)blinkenlights_cb}}, // Set other badges LED
+    {"Conductor",     VERT_ITEM, FUNCTION, {(struct menu_t *)conductor_cb}}, // Tell other badges to play notes
+    {"Sensors",       VERT_ITEM, FUNCTION, {(struct menu_t *)adc_cb} },
+-   {"Maze",          VERT_ITEM, FUNCTION, {(struct menu_t *)maze_cb} },
++   // {"Maze",          VERT_ITEM, FUNCTION, {(struct menu_t *)maze_cb} },
+    {"Sample App",    VERT_ITEM, FUNCTION, {(struct menu_t *)sample_app_cb} },
+    {"Back",         VERT_ITEM|LAST_ITEM, BACK, {NULL}},
+ };
+```
+
+8. Build it for the badge...
 
 Type `make` in the top level directory of the `badge2019interp` project...
 
-8. Flash the badge
+9. Flash the badge
 
 Press the button on the badge as you simultaneously plug it into the USB port
 of your computer.  A green LED should be flashing.
