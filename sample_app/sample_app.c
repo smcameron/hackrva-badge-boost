@@ -101,7 +101,7 @@ static void check_the_buttons(void)
 	const int top_limit = SCREEN_YDIM / 3;
 	const int bottom_limit = 2 * SCREEN_YDIM / 3;
 
-	static int something_changed = 0;
+	int something_changed = 0;
 
 	if (UP_BTN_AND_CONSUME) {
 		smiley_y -= 1;
@@ -133,6 +133,7 @@ static void check_the_buttons(void)
 
 static void exit_app(void)
 {
+	app_state = INIT_APP_STATE;
 	returnToMenus();
 }
 
