@@ -5,11 +5,23 @@
 
 #else
 
+#include "colors.h"
+#include "menu.h"
+#include "buttons.h"
+
+/* TODO: I shouldn't have to declare these myself. */
+#define size_t int
+extern char *strcpy(char *dest, const char *src);
+extern char *strncpy(char *dest, const char *src, size_t n);
+extern void *memset(void *s, int c, size_t n);
+extern char *strcat(char *dest, const char *src);
+
+
 #endif
 
 #define INIT_APP_STATE 0
-#define RENDER_SCREEN 1 
-#define CHECK_THE_BUTTONS 2 
+#define RENDER_SCREEN 1
+#define CHECK_THE_BUTTONS 2
 #define EXIT_APP 3
 
 static void app_init(void);
@@ -77,7 +89,7 @@ static void draw_object(struct point drawing[], int npoints, int color, int x, i
 static void render_screen(void)
 {
 	FbClear();
-	draw_object(smiley, ARRAYSIZE(smiley), WHITE, smiley_x, smiley_y);  
+	draw_object(smiley, ARRAYSIZE(smiley), WHITE, smiley_x, smiley_y);
 	FbSwapBuffers();
 	app_state = CHECK_THE_BUTTONS;
 }
@@ -104,7 +116,7 @@ static void check_the_buttons(void)
 		smiley_x += 1;
 		something_changed = 1;
 	} else if (BUTTON_PRESSED_AND_CONSUME) {
-		app_state = EXIT_APP; 
+		app_state = EXIT_APP;
 	}
 	if (smiley_x < left_limit)
 		smiley_x = left_limit;
@@ -121,11 +133,12 @@ static void check_the_buttons(void)
 
 static void exit_app(void)
 {
-	returnToMenus();	
+	returnToMenus();
 }
 
 static void app_init(void)
 {
+	FbInit();
 	app_state = INIT_APP_STATE;
 	smiley_x = SCREEN_XDIM / 2;
 	smiley_y = SCREEN_XDIM / 2;
@@ -142,7 +155,7 @@ int sample_app_cb(void)
 
 int main(int argc, char *argv[])
 {
-	start_gtk(&argc, &argv, sample_app_cb, 240);
+	start_gtk(&argc, &argv, sample_app_cb, 30);
 	return 0;
 }
 

@@ -1,6 +1,9 @@
 
 This is a basic intro about how to add apps to the HackRVA badge.
 
+Warning:  The sample app doesn't actually work on the badge yet for some
+reason.  I still need to debug that.
+
 I am assuming you're working on linux.  I have created a linux environment
 that mimics much of the badge environment which allows you to develop badge
 applications on linux without having to flash the code to the badge to check
@@ -90,14 +93,15 @@ linux, it will call linux_function1.
 
 Step 4:  Get your app running on the badge.
 
-1. Add your files under the badge_apps/ diretory.
+1. Clone the badge repo and "git pull" to make sure it's up to date.
 
-2. Modify the Makefile to know about your files by adding them
+2. Add your \*.c files under the badge_apps/ directory.
+
+3. Modify the Makefile to know about your files by adding them
    to the SRC_APPS_C variable.
 
-3. Add a your header file into include/myapp.h (Substitute your appname for "myapp".)
-
-Add in a single function that is your app callback.  For instance:
+4. Add a your header file into include/myapp.h (Substitute your appname for "myapp".)
+In this header, put in a single function that is your app callback.  For instance:
 
 ```
 #ifndef MYAPP_H__
@@ -108,7 +112,7 @@ void myapp_callback(void);
 #endif
 ```
 
-4. Modify src/menu.c:
+5. Modify src/menu.c:
 
 ```
 diff --git a/src/menu.c b/src/menu.c
@@ -131,14 +135,14 @@ index 175d1d4..f0aad9a 100644
     {"Back",          VERT_ITEM|LAST_ITEM, BACK, {NULL} },
 };
 ```
-5. Copy your source files from the hackrva-badge-boost project into the badge2019interp/badge_apps project.
+6. Copy your source files from the hackrva-badge-boost project into the badge2019interp/badge_apps project.
 You don't need to copy any of the linux/* files.
 
-5. Build it for the badge...
+7. Build it for the badge...
 
 Type "make" in the top level directory of the badge2019interp project...
 
-6. Flash the badge
+8. Flash the badge
 
 Press the button on the badge as you simultaneously plug it into the USB port
 of your computer.  A green LED should be flashing.
