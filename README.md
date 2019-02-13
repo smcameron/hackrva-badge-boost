@@ -114,7 +114,7 @@ void myapp_callback(void);
 
 5. Modify src/menu.c:
 
-```
+```diff
 diff --git a/src/menu.c b/src/menu.c
 index 175d1d4..f0aad9a 100644
 --- a/src/menu.c
@@ -135,6 +135,7 @@ index 175d1d4..f0aad9a 100644
     {"Back",          VERT_ITEM|LAST_ITEM, BACK, {NULL} },
 };
 ```
+
 6. Copy your source files from the hackrva-badge-boost project into the badge2019interp/badge_apps project.
 You don't need to copy any of the linux/* files.
 
