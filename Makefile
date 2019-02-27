@@ -5,10 +5,15 @@ GTKLDFLAGS:=$(shell pkg-config --libs gtk+-2.0) $(shell pkg-config --libs gthrea
 
 LINUX_OBJS=linux/linuxcompat.o linux/bline.o
 
-APPDIR=sample_app
-APPNAME=sample_app
+APPDIR=badge_apps
+APPNAME=irxmit
 
-sample_app/sample_app:	${APPDIR}/${APPNAME}.c ${APPDIR}/smiley.h linux/linuxcompat.o linux/bline.o
+all:	sample_app/sample_app ${APPDIR}/${APPNAME}
+
+sample_app/sample_app:	sample_app/sample_app.c sample_app/smiley.h linux/linuxcompat.o linux/bline.o
+	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o sample_app/sample_app sample_app/sample_app.c ${GTKLDFLAGS}
+
+${APPDIR}/${APPNAME}:	${APPDIR}/${APPNAME}.c linux/linuxcompat.o linux/bline.o
 	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o ${APPDIR}/${APPNAME} ${APPDIR}/${APPNAME}.c ${GTKLDFLAGS}
 
 linux/linuxcompat.o:	linux/linuxcompat.c linux/linuxcompat.h

@@ -460,7 +460,7 @@ void enable_interrupts(void)
 
 void IRqueueSend(union IRpacket_u packet)
 {
-	printf("Send packet to base station: 0x%08x\n", packet.v);
+	printf("Send packet : 0x%08x\n", packet.v);
 }
 
 static void setup_window_geometry(GtkWidget *window)
