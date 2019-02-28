@@ -12,6 +12,7 @@
 #include "colors.h"
 #include "menu.h"
 #include "buttons.h"
+#include "ir.h"
 #include "lasertag-protocol.h"
 
 /* TODO: I shouldn't have to declare these myself. */
@@ -29,13 +30,13 @@ extern char *strcat(char *dest, const char *src);
 #define RENDER_SCREEN 2
 #define CHECK_THE_BUTTONS 3
 #define EXIT_APP 4
-#define SENDHIT 5 
-#define SENDSTARTTIME 6 
-#define SENDDURATION 7 
-#define SENDVARIANT 8 
-#define SENDTEAM 9 
-#define SENDID 10 
-#define SENDDUMP 11 
+#define SENDHIT 5
+#define SENDSTARTTIME 6
+#define SENDDURATION 7
+#define SENDVARIANT 8
+#define SENDTEAM 9
+#define SENDID 10
+#define SENDDUMP 11
 
 static void app_init(void);
 static void render_screen(void);
@@ -70,6 +71,7 @@ static state_to_function_map_fn_type state_to_function_map[] = {
 static int app_state = INIT_APP_STATE;
 static int something_changed = 0;
 static int menu_choice = 0;
+static volatile unsigned int last_packet_out = 0;
 
 #define SCREEN_XDIM 132
 #define SCREEN_YDIM 132
@@ -108,6 +110,8 @@ static void send_a_packet(unsigned int packet)
 	union IRpacket_u p;
 
 	p.v = packet;
+	last_packet_out = packet;
+	something_changed = 1;
 	IRqueueSend(p);
 
 #ifdef __linux__
@@ -173,7 +177,7 @@ static void send_team(void)
 	unsigned int team_id;
 	unsigned short badge_id = BASE_STATION_BADGE_ID;
 
-	team_id = 1; 
+	team_id = 1;
 	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
 		(OPCODE_SET_BADGE_TEAM << 12) | team_id));
 	app_state = CHECK_THE_BUTTONS;
@@ -184,7 +188,7 @@ static void send_id(void)
 	unsigned int game_id;
 	unsigned short badge_id = BASE_STATION_BADGE_ID;
 
-	game_id = 99; 
+	game_id = 99;
 	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
 		(OPCODE_GAME_ID << 12) | game_id));
 	app_state = CHECK_THE_BUTTONS;
@@ -197,12 +201,27 @@ static void send_dump(void)
 	app_state = CHECK_THE_BUTTONS;
 }
 
+static void to_hex(char *buffer, unsigned int v)
+{
+	int i;
+	int nybble;
+	char *a = "0123456789ABCDEF";
+
+	for (i = 0; i < 8; i++) {
+		nybble = v & 0x0f;
+		buffer[7 - i] = a[nybble];
+		v = v >> 4;
+	}
+	buffer[8] = '\0';
+}
+
 static void draw_menu(void)
 {
 	int i;
 	char item[20];
 
 	FbClear();
+	FbColor(WHITE);
 	for (i = 0; i < MAX_MENU_CHOICES; i++) {
 		if (i == menu_choice) {
 			FbMove(5, i * 10);
@@ -212,6 +231,9 @@ static void draw_menu(void)
 		FbMove(20, i * 10);
 		FbWriteLine(item);
 	}
+	FbMove(5, 120);
+	to_hex(item, last_packet_out);
+	FbWriteLine(item);
 	app_state = RENDER_SCREEN;
 }
 
