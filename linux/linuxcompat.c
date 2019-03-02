@@ -152,6 +152,8 @@ const unsigned char font8x8_bits[] = {
    0x00, 0x00, 0x00, 0x00 };
 #endif
 
+struct sysData_t G_sysData = { 111 /* badge ID */ };
+
 static GtkWidget *vbox, *window, *drawing_area;
 #define SCALE_FACTOR 6
 #define GTK_SCREEN_WIDTH (SCREEN_XDIM * SCALE_FACTOR)
@@ -459,11 +461,6 @@ void enable_interrupts(void)
 void IRqueueSend(union IRpacket_u packet)
 {
 	printf("Send packet to base station: 0x%08x\n", packet.v);
-}
-
-unsigned int get_badge_id(void)
-{
-	return 0x0100;
 }
 
 static void setup_window_geometry(GtkWidget *window)

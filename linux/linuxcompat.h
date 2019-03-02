@@ -19,7 +19,6 @@ void FbColor(int color);
 void setup_ir_sensor(void);
 void disable_interrupts(void);
 void enable_interrupts(void);
-unsigned int get_badge_id(void);
 void start_gtk(int *argc, char ***argv, int (*main_badge_function)(void), int callback_hz);
 
 #define BLUE    0
@@ -59,6 +58,10 @@ union IRpacket_u {
 	struct IRpacket_t p;
 	unsigned int v;
 };
+
+extern struct sysData_t {
+	unsigned short badgeId;
+} G_sysData;
 
 void IRqueueSend(union IRpacket_u pkt);
 
