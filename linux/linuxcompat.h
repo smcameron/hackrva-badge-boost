@@ -71,3 +71,11 @@ void IRqueueSend(union IRpacket_u pkt);
 void register_ir_packet_callback(void (*callback)(struct IRpacket_t));
 void unregister_ir_packet_callback(void);
 
+#define IR_APP1 19
+#define IR_APP2 20
+#define IR_APP3 21
+#define IR_APP4 22
+#define IR_APP5 23
+#define IR_APP6 24
+#define IR_APP7 25
+
