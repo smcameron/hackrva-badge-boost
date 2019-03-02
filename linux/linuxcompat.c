@@ -424,6 +424,7 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 
 	free(p);
 
+	fprintf(stderr, "Starting writer thread\n");
 	/* Get localhost IP addr in byte form */
 	rc = inet_aton("127.0.0.1", &localhost_ip);
 	if (rc == 0) {
@@ -431,6 +432,7 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 		return NULL;
 	}
 
+	fprintf(stderr, "writer thread: getting UDP socket\n");
 	/* Make a UDP datagram socket */
 	bcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (bcast < 0) {
@@ -438,6 +440,7 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 		return NULL;
 	}
 
+	fprintf(stderr, "writer thread: set up for broadcasting\n");
 	/* Set our socket up for broadcasting */
 	on = 1;
 	rc = setsockopt(bcast, SOL_SOCKET, SO_REUSEADDR | SO_BROADCAST, (const char *) &on, sizeof(on));
@@ -447,6 +450,7 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 		return NULL;
 	}
 
+	fprintf(stderr, "writer thread: Getting netmask for broadcasting\n");
 	/* Get the netmask for our localhost interface */
 	rc = getifaddrs(&ifaddr);
 	if (rc < 0) {
@@ -478,16 +482,19 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 		close(bcast);
 		return NULL;
 	}
+	fprintf(stderr, "writer: Got netmask: %08x\n", netmask);
 
 	/* Compute the broadcast address and set the port */
 	bcast_addr.sin_addr.s_addr = ~netmask | localhost_ip.s_addr;
 	bcast_addr.sin_port = htons(port_to_xmit_on);
 
 	/* Start sending packets */
+	fprintf(stderr, "writer: Begin sending packets.\n");
 	pthread_mutex_lock(&interrupt_mutex);
 	do {
 		uint32_t v;
 		/* Wait for a packet to write to appear */
+		fprintf(stderr, "writer: waiting for packet to send\n");
 		rc = pthread_cond_wait(&packet_write_cond, &interrupt_mutex);
 		if (rc != 0)
 			fprintf(stderr, "pthread_cond_wait failed\n");
@@ -495,6 +502,7 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 			continue;
 		do {
 			v = ir_output_queue_dequeue();
+			fprintf(stderr, "writer: Sending packet: 0x%08x\n", v);
 			rc = sendto(bcast, &v, sizeof(v), 0, (struct sockaddr *) &bcast_addr, sizeof(bcast_addr));
 			if (rc < 0)
 				fprintf(stderr, "sendto failed: %s\n", strerror(errno));
@@ -515,6 +523,7 @@ static void *read_udp_packets_thread_fn(void *thread_info)
 
 	free(p);
 
+	fprintf(stderr, "reader: Making udp socket\n");
         /* Make ourselves a UDP datagram socket */
         bcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (bcast < 0) {
@@ -522,6 +531,7 @@ static void *read_udp_packets_thread_fn(void *thread_info)
                 return NULL;
         }
 
+	fprintf(stderr, "reader: binding to INADDR_ANY/12345\n");
 	/* Bind to any address on our port */
         bcast_addr.sin_family = AF_INET;
         bcast_addr.sin_addr.s_addr = INADDR_ANY;
@@ -532,19 +542,23 @@ static void *read_udp_packets_thread_fn(void *thread_info)
                 return NULL;
         }
 
+	fprintf(stderr, "reader: begin receiving packets\n");
 	/* Start receiving packets */
         do {
 		uint32_t v;
 		struct IRpacket_t p;
 		v = 0;
+		fprintf(stderr, "reader: Waiting for packet\n");
 		remote_addr_len = sizeof(remote_addr);
                 rc = recvfrom(bcast, &v, sizeof(v), 0, &remote_addr, &remote_addr_len);
                 if (rc < 0) {
                         fprintf(stderr, "recvfrom failed: %s\n", strerror(errno));
                 } else {
+			fprintf(stderr, "reader: Received packed 0x%08x\n", v);
                         /* fprintf(stderr, "Received broadcast lobby info: addr = %08x, port = %04x\n",
                                 ntohl(payload.ipaddr), ntohs(payload.port)); */
 			p.v = v;
+			fprintf(stderr, "reader: Calling callback\n");
 			disable_interrupts();
 			ir_packet_callback(p);
 			enable_interrupts();
