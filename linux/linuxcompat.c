@@ -13,6 +13,10 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <errno.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
@@ -374,84 +378,210 @@ void unregister_ir_packet_callback(void)
 	ir_packet_callback = ir_packet_ignore;
 }
 
-static int fifo_fd = -1;
+static pthread_cond_t packet_write_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t interrupt_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define IR_OUTPUT_QUEUE_SIZE 16
+static uint32_t ir_output_queue[IR_OUTPUT_QUEUE_SIZE] = { 0 };
+static int ir_output_queue_input = 0;
+static int ir_output_queue_output = 0;
+static int output_queue_has_new_packets = 0;
 
-static void *read_from_fifo(void *thread_info)
+static int ir_output_queue_empty(void)
 {
-	int rc, count, bytesleft;
-	struct IRpacket_t buffer;
-	unsigned char *buf = (unsigned char *) &buffer;
-	struct stat s;
+	return ir_output_queue_input == ir_output_queue_output;
+}
 
-	rc = stat(FIFO_TO_BADGE, &s);
-	if (!rc) {
-		if (!S_ISFIFO(s.st_mode)) {
-			fprintf(stderr, "%s exists, but is not a named pipe.\n", FIFO_TO_BADGE);
-			exit(1);
-		}
-	} else {
-		if (errno != ENOENT) {
-			fprintf(stderr, "Failed to stat %s: %s\n", FIFO_TO_BADGE, strerror(errno));
-			exit(1);
-		}
-	}
+static void ir_output_queue_enqueue(uint32_t v)
+{
+	ir_output_queue[ir_output_queue_input] = v;
+	ir_output_queue_input = (ir_output_queue_input + 1) % IR_OUTPUT_QUEUE_SIZE;
+}
 
-try_again:
-	fifo_fd = open(FIFO_TO_BADGE, O_RDONLY);
-	if (fifo_fd < 0) {
-		if (errno == ENOENT) {
-			rc = mkfifo(FIFO_TO_BADGE, 0644);
-			if (rc) {
-				fprintf(stderr, "Failed to create fifo %s\n", FIFO_TO_BADGE);
-				exit(1);
-			}
-			goto try_again;
-		}
-		fprintf(stderr, "Failed to open %s: %s\n", FIFO_TO_BADGE, strerror(errno));
-		exit(1);
+static uint32_t ir_output_queue_dequeue(void)
+{
+	uint32_t v;
+
+	if (ir_output_queue_empty())
+		return (uint32_t) -1; /* should not happen */
+	v = ir_output_queue[ir_output_queue_output];
+	ir_output_queue_output = (ir_output_queue_output + 1) % IR_OUTPUT_QUEUE_SIZE;
+	return v;
+}
+
+#define BADGE_IR_UDP_PORT 12345
+
+static void *write_udp_packets_thread_fn(void *thread_info)
+{
+	unsigned short *p = thread_info;
+	struct in_addr localhost_ip;
+	int on;
+	int rc, bcast;
+	uint32_t netmask;
+	struct ifaddrs *ifaddr, *a;
+        struct sockaddr_in bcast_addr;
+	int found_netmask = 0;
+	unsigned short port_to_xmit_on = *p;
+
+	free(p);
+
+	/* Get localhost IP addr in byte form */
+	rc = inet_aton("127.0.0.1", &localhost_ip);
+	if (rc == 0) {
+		fprintf(stderr, "inet_aton: invalid address 127.0.0.1");
 		return NULL;
 	}
 
-	count = 0;
-	bytesleft = 4;
-	do {
-		do {
-			rc = read(fifo_fd, &buf[count], bytesleft);
-			if (rc < 0 && errno == EINTR)
-				continue;
-			if (rc < 0) {
-				fprintf(stderr, "Failed to read from %s: %s\n", FIFO_TO_BADGE, strerror(errno));
-				exit(1);
-				break;
-			}
-			if (rc == bytesleft) {
-				bytesleft = 4;
-				count = 0;
-				break;
-			}
-			bytesleft -= rc;
-			count += rc;
-		} while (bytesleft > 0);
-		if (rc < 0)
+	/* Make a UDP datagram socket */
+	bcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (bcast < 0) {
+		fprintf(stderr, "socket: Failed to create UDP datagram socket: %s\n", strerror(errno));
+		return NULL;
+	}
+
+	/* Set our socket up for broadcasting */
+	on = 1;
+	rc = setsockopt(bcast, SOL_SOCKET, SO_REUSEADDR | SO_BROADCAST, (const char *) &on, sizeof(on));
+	if (rc < 0) {
+		fprintf(stderr, "setsockopt(SO_REUSEADDR | SO_BROADCAST): %s\n", strerror(errno));
+		close(bcast);
+		return NULL;
+	}
+
+	/* Get the netmask for our localhost interface */
+	rc = getifaddrs(&ifaddr);
+	if (rc < 0) {
+		fprintf(stderr, "getifaddrs() failed: %s\n", strerror(errno));
+		close(bcast);
+		return NULL;
+	}
+	found_netmask = 0;
+	for (a = ifaddr; a; a = a->ifa_next) {
+		struct in_addr s;
+		if (a->ifa_addr == NULL)
+			continue;
+		if (a->ifa_addr->sa_family != AF_INET)
+			continue;
+		s = ((struct sockaddr_in *) a->ifa_addr)->sin_addr;
+		bcast_addr = *(struct sockaddr_in *) a->ifa_addr;
+		fprintf(stderr, "comparing ipaddr %08x to %08x\n", s.s_addr, localhost_ip.s_addr);
+		if (s.s_addr == localhost_ip.s_addr) {
+			fprintf(stderr, "Matched IP address %08x\n", (uint32_t) localhost_ip.s_addr);
+			netmask = ((struct sockaddr_in *) a->ifa_netmask)->sin_addr.s_addr;
+			found_netmask = 1;
 			break;
-		disable_interrupts();
-		ir_packet_callback(buffer);
-		enable_interrupts();
+		}
+	}
+	if (ifaddr)
+		freeifaddrs(ifaddr);
+	if (!found_netmask) {
+		fprintf(stderr, "failed to get netmask.\n");
+		close(bcast);
+		return NULL;
+	}
+
+	/* Compute the broadcast address and set the port */
+	bcast_addr.sin_addr.s_addr = ~netmask | localhost_ip.s_addr;
+	bcast_addr.sin_port = htons(port_to_xmit_on);
+
+	/* Start sending packets */
+	pthread_mutex_lock(&interrupt_mutex);
+	do {
+		uint32_t v;
+		/* Wait for a packet to write to appear */
+		rc = pthread_cond_wait(&packet_write_cond, &interrupt_mutex);
+		if (rc != 0)
+			fprintf(stderr, "pthread_cond_wait failed\n");
+		if (!output_queue_has_new_packets)
+			continue;
+		do {
+			v = ir_output_queue_dequeue();
+			rc = sendto(bcast, &v, sizeof(v), 0, (struct sockaddr *) &bcast_addr, sizeof(bcast_addr));
+			if (rc < 0)
+				fprintf(stderr, "sendto failed: %s\n", strerror(errno));
+		} while (!ir_output_queue_empty());
 	} while (1);
+	pthread_mutex_unlock(&interrupt_mutex);
 	return NULL;
 }
 
-void setup_ir_sensor()
+static void *read_udp_packets_thread_fn(void *thread_info)
+{
+	unsigned short *p = thread_info;
+	int rc, bcast;
+	struct sockaddr_in bcast_addr;
+	struct sockaddr remote_addr;
+	socklen_t remote_addr_len;
+	unsigned short port_to_recv_from = *p;
+
+	free(p);
+
+        /* Make ourselves a UDP datagram socket */
+        bcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (bcast < 0) {
+                fprintf(stderr, "broadcast_lobby_info: socket() failed: %s\n", strerror(errno));
+                return NULL;
+        }
+
+	/* Bind to any address on our port */
+        bcast_addr.sin_family = AF_INET;
+        bcast_addr.sin_addr.s_addr = INADDR_ANY;
+        bcast_addr.sin_port = htons(port_to_recv_from);
+        rc = bind(bcast, (struct sockaddr *) &bcast_addr, sizeof(bcast_addr));
+        if (rc < 0) {
+                fprintf(stderr, "bind() bcast_addr failed: %s\n", strerror(errno));
+                return NULL;
+        }
+
+	/* Start receiving packets */
+        do {
+		uint32_t v;
+		struct IRpacket_t p;
+		v = 0;
+		remote_addr_len = sizeof(remote_addr);
+                rc = recvfrom(bcast, &v, sizeof(v), 0, &remote_addr, &remote_addr_len);
+                if (rc < 0) {
+                        fprintf(stderr, "recvfrom failed: %s\n", strerror(errno));
+                } else {
+                        /* fprintf(stderr, "Received broadcast lobby info: addr = %08x, port = %04x\n",
+                                ntohl(payload.ipaddr), ntohs(payload.port)); */
+			p.v = v;
+			disable_interrupts();
+			ir_packet_callback(p);
+			enable_interrupts();
+		}
+	} while(1);
+	return NULL;
+}
+
+void setup_ir_sensor(unsigned short port_to_recv_from)
 {
 	pthread_t thr;
 	int rc;
 
-	rc = pthread_create(&thr, NULL, read_from_fifo, NULL);
+	unsigned short *p = malloc(sizeof(p));
+	*p = port_to_recv_from;
+	rc = pthread_create(&thr, NULL, read_udp_packets_thread_fn, p);
 	if (rc < 0)
-		fprintf(stderr, "Failed to create thread to read from fifo: %s\n", strerror(errno));
+		fprintf(stderr, "Failed to create thread to read udp packets: %s\n", strerror(errno));
 }
 
-static pthread_mutex_t interrupt_mutex = PTHREAD_MUTEX_INITIALIZER;
+void setup_ir_transmitter(unsigned short port_to_transmit_from)
+{
+	pthread_t thr;
+	int rc;
+
+	unsigned short *p = malloc(sizeof(p));
+	*p = port_to_transmit_from;
+	rc = pthread_create(&thr, NULL, write_udp_packets_thread_fn, p);
+	if (rc < 0)
+		fprintf(stderr, "Failed to create thread to write udp packets: %s\n", strerror(errno));
+}
+
+void setup_linux_ir_simulator(unsigned short port_to_recv_from, unsigned short port_to_xmit_on)
+{
+	setup_ir_sensor(port_to_recv_from);
+	setup_ir_transmitter(port_to_xmit_on);
+}
 
 void disable_interrupts(void)
 {
@@ -465,7 +595,16 @@ void enable_interrupts(void)
 
 void IRqueueSend(union IRpacket_u packet)
 {
+	int rc;
+
 	printf("Send packet : 0x%08x\n", packet.v);
+	pthread_mutex_lock(&interrupt_mutex);
+	ir_output_queue_enqueue(packet.v);
+	output_queue_has_new_packets = 1;
+	rc = pthread_cond_broadcast(&packet_write_cond);
+	if (rc)
+		fprintf(stderr, "pthread_cond_broadcast failed: %s\n", strerror(errno));
+	pthread_mutex_unlock(&interrupt_mutex);
 }
 
 static void setup_window_geometry(GtkWidget *window)

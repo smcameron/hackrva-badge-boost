@@ -17,7 +17,9 @@ int abs(int x);
 void returnToMenus(void);
 void FbColor(int color);
 
-void setup_ir_sensor(void);
+/* Port numbers are in host byte order here. */
+void setup_linux_ir_simulator(unsigned short port_to_recv_from, unsigned short port_to_xmit_on);
+
 void disable_interrupts(void);
 void enable_interrupts(void);
 void start_gtk(int *argc, char ***argv, int (*main_badge_function)(void), int callback_hz);
