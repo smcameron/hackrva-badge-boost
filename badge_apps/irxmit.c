@@ -7,6 +7,12 @@
 #include "../linux/linuxcompat.h"
 #include "lasertag-protocol.h"
 
+static unsigned short get_badge_id(void)
+{
+	return 99;
+}
+
+
 #else
 
 #include "colors.h"
@@ -14,6 +20,7 @@
 #include "buttons.h"
 #include "ir.h"
 #include "lasertag-protocol.h"
+#include "flash.h"
 
 /* TODO: I shouldn't have to declare these myself. */
 #define size_t int
@@ -22,6 +29,10 @@ extern char *strncpy(char *dest, const char *src, size_t n);
 extern void *memset(void *s, int c, size_t n);
 extern char *strcat(char *dest, const char *src);
 
+static unsigned short get_badge_id(void)
+{
+	return G_sysData.badgeId;
+}
 
 #endif
 
@@ -71,7 +82,6 @@ static state_to_function_map_fn_type state_to_function_map[] = {
 static int app_state = INIT_APP_STATE;
 static int something_changed = 0;
 static int menu_choice = 0;
-static volatile unsigned int last_packet_out = 0;
 
 #define SCREEN_XDIM 132
 #define SCREEN_YDIM 132
@@ -110,8 +120,6 @@ static void send_a_packet(unsigned int packet)
 	union IRpacket_u p;
 
 	p.v = packet;
-	last_packet_out = packet;
-	something_changed = 1;
 	IRqueueSend(p);
 
 #ifdef __linux__
@@ -127,13 +135,12 @@ static void send_a_packet(unsigned int packet)
 
 static void send_hit(void)
 {
-	unsigned int badge_id, team_id;
+	unsigned int team_id;
 
-	badge_id = 15;
 	team_id = 5;
 
-	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
-		(OPCODE_HIT << 12) | team_id));
+	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
+		(OPCODE_HIT << 12) | (get_badge_id() << 4) | team_id));
 	app_state = CHECK_THE_BUTTONS;
 }
 
@@ -142,10 +149,9 @@ static void send_hit(void)
 static void send_start_time(void)
 {
 	unsigned int start_time;
-	unsigned short badge_id = BASE_STATION_BADGE_ID;
 
 	start_time = 30;
-	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
+	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
 			(OPCODE_SET_GAME_START_TIME << 12) | start_time));
 	app_state = CHECK_THE_BUTTONS;
 }
@@ -153,10 +159,9 @@ static void send_start_time(void)
 static void send_duration(void)
 {
 	unsigned int duration;
-	unsigned short badge_id = BASE_STATION_BADGE_ID;
 
-	duration = 30;
-	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
+	duration = 60;
+	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
 		(OPCODE_SET_GAME_DURATION << 12) | duration));
 	app_state = CHECK_THE_BUTTONS;
 }
@@ -164,10 +169,9 @@ static void send_duration(void)
 static void send_variant(void)
 {
 	unsigned int game_variant;
-	unsigned short badge_id = BASE_STATION_BADGE_ID;
 
 	game_variant = 4;
-	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
+	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
 		(OPCODE_SET_GAME_VARIANT << 12) | game_variant));
 	app_state = CHECK_THE_BUTTONS;
 }
@@ -175,10 +179,9 @@ static void send_variant(void)
 static void send_team(void)
 {
 	unsigned int team_id;
-	unsigned short badge_id = BASE_STATION_BADGE_ID;
 
 	team_id = 1;
-	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
+	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
 		(OPCODE_SET_BADGE_TEAM << 12) | team_id));
 	app_state = CHECK_THE_BUTTONS;
 }
@@ -186,33 +189,18 @@ static void send_team(void)
 static void send_id(void)
 {
 	unsigned int game_id;
-	unsigned short badge_id = BASE_STATION_BADGE_ID;
 
 	game_id = 99;
-	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, badge_id,
+	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
 		(OPCODE_GAME_ID << 12) | game_id));
 	app_state = CHECK_THE_BUTTONS;
 }
 
 static void send_dump(void)
 {
-	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BASE_STATION_BADGE_ID,
+	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
 		(OPCODE_REQUEST_BADGE_DUMP << 12)));
 	app_state = CHECK_THE_BUTTONS;
-}
-
-static void to_hex(char *buffer, unsigned int v)
-{
-	int i;
-	int nybble;
-	char *a = "0123456789ABCDEF";
-
-	for (i = 0; i < 8; i++) {
-		nybble = v & 0x0f;
-		buffer[7 - i] = a[nybble];
-		v = v >> 4;
-	}
-	buffer[8] = '\0';
 }
 
 static void draw_menu(void)
@@ -221,7 +209,6 @@ static void draw_menu(void)
 	char item[20];
 
 	FbClear();
-	FbColor(WHITE);
 	for (i = 0; i < MAX_MENU_CHOICES; i++) {
 		if (i == menu_choice) {
 			FbMove(5, i * 10);
@@ -231,9 +218,6 @@ static void draw_menu(void)
 		FbMove(20, i * 10);
 		FbWriteLine(item);
 	}
-	FbMove(5, 120);
-	to_hex(item, last_packet_out);
-	FbWriteLine(item);
 	app_state = RENDER_SCREEN;
 }
 
