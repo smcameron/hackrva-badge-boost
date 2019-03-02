@@ -275,6 +275,11 @@ int irxmit_cb(void)
 
 int main(int argc, char *argv[])
 {
+
+#define IRXMIT_UDP_PORT 12345
+#define LASERTAG_UDP_PORT 12346
+
+	setup_linux_ir_simulator(LASERTAG_UDP_PORT, IRXMIT_UDP_PORT);
 	start_gtk(&argc, &argv, irxmit_cb, 30);
 	return 0;
 }
