@@ -8,11 +8,9 @@
 #include "../linux/linuxcompat.h"
 #include "lasertag-protocol.h"
 
-static unsigned short get_badge_id(void)
-{
-	return 99;
-}
-
+static const struct gsysdata {
+	unsigned short badgeId;
+} G_sysData = { 99 };
 
 #else
 
@@ -22,6 +20,7 @@ static unsigned short get_badge_id(void)
 #include "ir.h"
 #include "lasertag-protocol.h"
 #include "flash.h"
+#include "timer1_int.h" /* for wclock */
 
 /* TODO: I shouldn't have to declare these myself. */
 #define size_t int
@@ -156,24 +155,22 @@ static void send_a_packet(unsigned int packet)
 
 }
 
+#define BASE_STATION_BADGE_ID G_sysData.badgeId
+
 static void send_hit(void)
 {
 	unsigned int team_id;
-
-	team_id = 5;
 
 	send_a_packet(build_packet(1, 1, BADGE_IR_GAME_ADDRESS, BADGE_IR_BROADCAST_ID,
 		(OPCODE_HIT << 12) | (get_badge_id() << 4) | team_id));
 	app_state = CHECK_THE_BUTTONS;
 }
 
-#define BASE_STATION_BADGE_ID 99
-
 static void send_start_time(void)
 {
+	unsigned int start_time;
 #ifdef __linux__
 	struct timeval tv;
-	unsigned int start_time;
 
 	gettimeofday(&tv, NULL);
 	start_time = game_data.absolute_start_time - tv.tv_sec;
@@ -386,7 +383,7 @@ static void ir_packet_callback(struct IRpacket_t packet)
 }
 
 #ifndef __linux__
-static void (*old_callback)(struct IRpacket_t) = NULL;
+static void (*old_callback)(struct IRpacket_t) = 0;
 static void register_ir_packet_callback(void (*callback)(struct IRpacket_t))
 {
 	/* This is pretty gross.  Ideally there should be some registration,
