@@ -23,6 +23,7 @@
 
 #include "bline.h"
 #include "linuxcompat.h"
+#include "../badge_apps/build_bug_on.h"
 
 #define FIFO_TO_BADGE "/tmp/fifo-to-badge"
 
@@ -157,6 +158,8 @@ const unsigned char font8x8_bits[] = {
 #endif
 
 struct sysData_t G_sysData = { 111 /* badge ID */ };
+int IRpacketOutNext;
+int IRpacketOutCurr;
 
 static GtkWidget *vbox, *window, *drawing_area;
 #define SCALE_FACTOR 6
@@ -393,18 +396,23 @@ static int ir_output_queue_empty(void)
 
 static void ir_output_queue_enqueue(uint32_t v)
 {
-	ir_output_queue[ir_output_queue_input] = v;
-	ir_output_queue_input = (ir_output_queue_input + 1) % IR_OUTPUT_QUEUE_SIZE;
+	if (((IRpacketOutNext+1) % MAXPACKETQUEUE) != IRpacketOutCurr) {
+		ir_output_queue[ir_output_queue_input] = v;
+		ir_output_queue_input = (ir_output_queue_input + 1) % IR_OUTPUT_QUEUE_SIZE;
+		IRpacketOutNext = (IRpacketOutNext + 1) % MAXPACKETQUEUE;
+	}
 }
 
 static uint32_t ir_output_queue_dequeue(void)
 {
 	uint32_t v;
+	BUILD_ASSERT(MAXPACKETQUEUE == IR_OUTPUT_QUEUE_SIZE);
 
 	if (ir_output_queue_empty())
 		return (uint32_t) -1; /* should not happen */
 	v = ir_output_queue[ir_output_queue_output];
 	ir_output_queue_output = (ir_output_queue_output + 1) % IR_OUTPUT_QUEUE_SIZE;
+	IRpacketOutCurr = (IRpacketOutCurr + 1) % MAXPACKETQUEUE;
 	return v;
 }
 

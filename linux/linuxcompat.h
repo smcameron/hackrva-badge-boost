@@ -39,6 +39,12 @@ int down_btn_and_consume();
 int left_btn_and_consume();
 int right_btn_and_consume();
 
+/* Emulate some stuff from ir.c */
+extern int IRpacketOutNext;
+extern int IRpacketOutCurr;
+#define MAXPACKETQUEUE 16
+#define IR_OUTPUT_QUEUE_FULL (((IRpacketOutNext+1) % MAXPACKETQUEUE) == IRpacketOutCurr)
+
 #define BUTTON_PRESSED_AND_CONSUME button_pressed_and_consume()
 #define DOWN_BTN_AND_CONSUME down_btn_and_consume()
 #define UP_BTN_AND_CONSUME up_btn_and_consume()
