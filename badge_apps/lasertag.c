@@ -13,7 +13,7 @@ code must run in.
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "../linux/linuxcompat.h"
+#include "linuxcompat.h"
 
 int argcount;
 char **arguments;
@@ -45,15 +45,15 @@ extern char *strcat(char *dest, const char *src);
 #define SCREEN_XDIM 132
 #define SCREEN_YDIM 132
 
-#define DISABLE_INTERRUPTS
-#define ENABLE_INTERRUPTS
-
-#endif
-
 static int get_badge_id(void)
 {
 	return G_sysData.badgeId & 0x1ff; /* TODO: Is this right? */
 }
+
+#define DISABLE_INTERRUPTS
+#define ENABLE_INTERRUPTS
+
+#endif
 
 #include "lasertag-protocol.h"
 #include "build_bug_on.h"
@@ -446,7 +446,6 @@ static void button_pressed()
 	}
 }
 
-#ifndef __linux__
 static int get_time(void)
 {
 #if LASERTAG_DISPLAY_CURRENT_TIME
@@ -459,7 +458,6 @@ static int get_time(void)
 #endif
 	return 3600 * (int) wclock.hour + 60 * (int) wclock.min + (int) wclock.sec;
 }
-#endif
 
 static void set_game_start_timestamp(int time)
 {
