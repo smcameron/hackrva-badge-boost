@@ -3,7 +3,7 @@ CFLAGS=-pthread -fsanitize=address -Wall --pedantic -g
 GTKCFLAGS:=$(subst -I,-isystem ,$(shell pkg-config --cflags gtk+-2.0))
 GTKLDFLAGS:=$(shell pkg-config --libs gtk+-2.0) $(shell pkg-config --libs gthread-2.0)
 
-LINUX_OBJS=linux/linuxcompat.o linux/bline.o badge_apps/xorshift.o
+LINUX_OBJS=linux/linuxcompat.o linux/bline.o badge_apps/xorshift.o badge_apps/achievements.o
 
 APPDIR=badge_apps
 IRXMIT=irxmit
@@ -24,7 +24,7 @@ ${APPDIR}/${LASERTAG}:	${APPDIR}/${LASERTAG}.c linux/linuxcompat.o linux/bline.o
 ${APPDIR}/xorshift.o:	${APPDIR}/xorshift.c ${APPDIR}/xorshift.h
 	$(CC) ${CFLAGS} ${GTKCFLAGS} -c ${APPDIR}/xorshift.c -o ${APPDIR}/xorshift.o
 
-${APPDIR}/${MAZE}:	${APPDIR}/${MAZE}.c linux/linuxcompat.o linux/bline.o ${APPDIR}/xorshift.o \
+${APPDIR}/${MAZE}:	${APPDIR}/${MAZE}.c linux/linuxcompat.o linux/bline.o ${APPDIR}/xorshift.o ${APPDIR}/achievements.o\
 			${APPDIR}/bones_points.h \
 			${APPDIR}/build_bug_on.h \
 			${APPDIR}/chalice_points.h \
@@ -50,6 +50,9 @@ linux/linuxcompat.o:	linux/linuxcompat.c linux/linuxcompat.h
 
 linux/bline.o:	linux/bline.c linux/bline.h
 	$(CC) ${CFLAGS} -c linux/bline.c -o linux/bline.o
+
+${APPDIR}/achievements.o:	${APPDIR}/achievements.c ${APPDIR}/achievements.h
+	$(CC) ${CFLAGS} -c ${APPDIR}/achievements.c -o ${APPDIR}/achievements.o
 
 
 clean:
