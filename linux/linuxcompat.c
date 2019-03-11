@@ -177,6 +177,7 @@ static int (*badge_function)(void);
 static int time_to_quit = 0;
 
 static unsigned char current_color = BLUE;
+static int serial_port_fd = -1;
 
 #define BUTTON 0
 #define LEFT 1
@@ -432,6 +433,9 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 
 	free(p);
 
+	if (serial_port_fd >= 0)
+		goto skip_socket_stuff;
+
 	/* Get localhost IP addr in byte form */
 	rc = inet_aton("127.0.0.1", &localhost_ip);
 	if (rc == 0) {
@@ -491,6 +495,7 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 	bcast_addr.sin_addr.s_addr = ~netmask | localhost_ip.s_addr;
 	bcast_addr.sin_port = htons(port_to_xmit_on);
 
+skip_socket_stuff:
 	/* Start sending packets */
 	pthread_mutex_lock(&interrupt_mutex);
 	do {
@@ -503,11 +508,29 @@ static void *write_udp_packets_thread_fn(void *thread_info)
 			continue;
 		do {
 			v = ir_output_queue_dequeue();
-			rc = sendto(bcast, &v, sizeof(v), 0, (struct sockaddr *) &bcast_addr, sizeof(bcast_addr));
-			if (rc < 0)
-				fprintf(stderr, "sendto failed: %s\n", strerror(errno));
+			if (serial_port_fd < 0) { /* no serial port, send via udp */
+				rc = sendto(bcast, &v, sizeof(v), 0, (struct sockaddr *) &bcast_addr, sizeof(bcast_addr));
+				if (rc < 0)
+					fprintf(stderr, "sendto failed: %s\n", strerror(errno));
+			} else { /* send via serial port */
+				int bytes_left, bytes_written;
+				unsigned char *b = (unsigned char *) &v;
+
+				bytes_left = sizeof(v);
+				do {
+					bytes_written = write(serial_port_fd, &b[4 - bytes_left], bytes_left);
+					if (bytes_written < 0) {
+						if (errno == EINTR)
+							continue;
+						fprintf(stderr, "write: %s\n", strerror(errno));
+						goto out;
+					}
+					bytes_left -= bytes_written;
+				} while (bytes_left > 0);
+			}
 		} while (!ir_output_queue_empty());
 	} while (1);
+out:
 	pthread_mutex_unlock(&interrupt_mutex);
 	return NULL;
 }
@@ -522,6 +545,9 @@ static void *read_udp_packets_thread_fn(void *thread_info)
 	unsigned short port_to_recv_from = *p;
 
 	free(p);
+
+	if (serial_port_fd >= 0)
+		goto skip_socket_stuff;
 
         /* Make ourselves a UDP datagram socket */
         bcast = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -540,24 +566,45 @@ static void *read_udp_packets_thread_fn(void *thread_info)
                 return NULL;
         }
 
+skip_socket_stuff:
 	/* Start receiving packets */
         do {
 		uint32_t v;
 		struct IRpacket_t p;
 		v = 0;
-		remote_addr_len = sizeof(remote_addr);
-                rc = recvfrom(bcast, &v, sizeof(v), 0, &remote_addr, &remote_addr_len);
-                if (rc < 0) {
-                        fprintf(stderr, "recvfrom failed: %s\n", strerror(errno));
-                } else {
-                        /* fprintf(stderr, "Received broadcast lobby info: addr = %08x, port = %04x\n",
-                                ntohl(payload.ipaddr), ntohs(payload.port)); */
-			p.v = v;
-			disable_interrupts();
-			ir_packet_callback(p);
-			enable_interrupts();
+		if (serial_port_fd < 0) {
+			remote_addr_len = sizeof(remote_addr);
+			rc = recvfrom(bcast, &v, sizeof(v), 0, &remote_addr, &remote_addr_len);
+		} else {
+			int bytes_read, bytes_left;
+			unsigned char *b = (unsigned char *) &v;
+
+			bytes_left = sizeof(v);
+			do {
+				bytes_read = read(serial_port_fd, &b[4 - bytes_left], bytes_left);
+				if (bytes_read < 0) {
+					if (errno == EINTR)
+						continue;
+					fprintf(stderr, "read: %s\n", strerror(errno));
+					enable_interrupts();
+					goto out;
+				}
+				bytes_left -= bytes_read;
+			} while (bytes_left > 0);
+			rc = 0;
 		}
+		if (rc < 0) {
+			fprintf(stderr, "recvfrom failed: %s\n", strerror(errno));
+			continue;
+		}
+		/* fprintf(stderr, "Received broadcast lobby info: addr = %08x, port = %04x\n",
+				ntohl(payload.ipaddr), ntohs(payload.port)); */
+		p.v = v;
+		disable_interrupts();
+		ir_packet_callback(p);
+		enable_interrupts();
 	} while(1);
+out:
 	return NULL;
 }
 
@@ -585,8 +632,43 @@ void setup_ir_transmitter(unsigned short port_to_transmit_from)
 		fprintf(stderr, "Failed to create thread to write udp packets: %s\n", strerror(errno));
 }
 
-void setup_linux_ir_simulator(unsigned short port_to_recv_from, unsigned short port_to_xmit_on)
+/* Opens a serial port and configures for 9600 baud, 8N1, global serial_port_fd is set */
+static void setup_linux_ir_serial_port(char *serial_port)
 {
+	int fd;
+	struct termios options;
+
+	fd = open(serial_port, O_RDWR | O_NOCTTY);
+
+	if (fd < 0) {
+		fprintf(stderr, "open: %s: %s\n", serial_port, strerror(errno));
+		serial_port_fd = -1;
+		return;
+	}
+	tcgetattr(fd, &options);
+	cfsetispeed(&options, B9600);
+	cfsetospeed(&options, B9600);
+	options.c_cflag |= (CLOCAL | CREAD);
+	/* 8N1 */
+	options.c_cflag &= ~PARENB;
+	options.c_cflag &= ~CSTOPB;
+	options.c_cflag &= ~CSIZE;
+	options.c_cflag |= CS8;
+
+	/* Raw mode */
+	options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+
+	tcsetattr(fd, TCSANOW, &options);
+
+	serial_port_fd = fd;
+	fprintf(stderr, "irxmit: Using serial port to simulate IR\n");
+	return;
+}
+
+void setup_linux_ir_simulator(char *serial_port, unsigned short port_to_recv_from, unsigned short port_to_xmit_on)
+{
+	if (serial_port)
+		setup_linux_ir_serial_port(serial_port);
 	setup_ir_sensor(port_to_recv_from);
 	setup_ir_transmitter(port_to_xmit_on);
 }
