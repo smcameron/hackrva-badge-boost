@@ -525,6 +525,7 @@ skip_socket_stuff:
 						fprintf(stderr, "write: %s\n", strerror(errno));
 						goto out;
 					}
+					printf("Wrote %d bytes of %08x to serial port\n", bytes_written, v);
 					bytes_left -= bytes_written;
 				} while (bytes_left > 0);
 			}
