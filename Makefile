@@ -13,6 +13,9 @@ USERNAME=username
 
 all:	sample_app/sample_app ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} ${APPDIR}/${MAZE} ${APPDIR}/${USERNAME}
 
+badge_monsters/badge_monsters:	badge_monsters/badge_monsters.c badge_monsters/smileymon.h linux/linuxcompat.o linux/bline.o ${LINUX_OBJS}
+	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o badge_monsters/badge_monsters badge_monsters/badge_monsters.c ${GTKLDFLAGS}
+
 sample_app/sample_app:	sample_app/sample_app.c sample_app/smiley.h linux/linuxcompat.o linux/bline.o ${LINUX_OBJS}
 	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o sample_app/sample_app sample_app/sample_app.c ${GTKLDFLAGS}
 
