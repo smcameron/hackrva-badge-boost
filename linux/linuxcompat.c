@@ -663,9 +663,9 @@ static void setup_linux_ir_serial_port(char *serial_port)
 
 	serial_port_fd = fd;
 
-	write(serial_port_fd, "ZsYnC#", 6);	/* write sync sequence. This is to enable the badge to successfully skip */
+	write(serial_port_fd, "ZsYnCxX#", 6);	/* write sync sequence. This is to enable the badge to successfully skip */
 						/* a few indeterminate garbage bytes that show up on the USB serial when */
-						/* first connected. */
+						/* first connected. Must be a multiple of 4 bytes long. */
 
 	fprintf(stderr, "irxmit: Using serial port to simulate IR\n");
 	return;
