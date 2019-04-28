@@ -16,6 +16,7 @@ void itoa(char *string, int value, int base);
 int abs(int x);
 void returnToMenus(void);
 void FbColor(int color);
+void setNote(int note, int duration);
 
 /* Port numbers are in host byte order here. UDP is used if serial_port is NULL, otherwise serial port is used */
 void setup_linux_ir_simulator(char *serial_port, unsigned short port_to_recv_from, unsigned short port_to_xmit_on);

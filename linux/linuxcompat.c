@@ -930,4 +930,6 @@ int right_btn_and_consume()
 	return generic_button_pressed(RIGHT);
 }
 
-
+void setNote(__attribute__((unused)) int note, __attribute__((unused)) int duration)
+{
+}
