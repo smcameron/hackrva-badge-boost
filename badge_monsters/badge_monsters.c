@@ -237,10 +237,10 @@ static void change_menu_level(enum menu_level_t level){
 }
 
 static void enable_monster(int monster_id){
-	monsters[monster_id].status = 1;
-	#ifdef __linux__
-		printf("enabling monster: %d\n", monster_id);
-	#endif
+    monsters[monster_id].status = 1;
+    #ifdef __linux__
+        printf("enabling monster: %d\n", monster_id);
+    #endif
 }
 
 static void render_monster(void)
@@ -305,7 +305,7 @@ static void check_the_buttons(void)
         #ifdef __linux__
             print_menu_info();
         #endif
-    }
+	}
     else if (BUTTON_PRESSED_AND_CONSUME)
     {
         int back = 0;
@@ -315,7 +315,7 @@ static void check_the_buttons(void)
                 back = 1;
                 something_changed = 1;
             } else {
-				something_changed = 1;
+                something_changed = 1;
                 app_state = RENDER_MONSTER;
             }
         }
@@ -325,13 +325,11 @@ static void check_the_buttons(void)
             switch(menu.current_item){
                 case 0:
                     change_menu_level(MONSTER_MENU);
-					current_monster = menu.item[menu.current_item].cookie;
+                    current_monster = menu.item[menu.current_item].cookie;
                     something_changed = 1;
                     break;
                 case 1:
-                    #ifdef __linux__
-                        printf("trade monsters\n");
-                    #endif
+                    /* stage_monster_trade(); */
                     break;
                 case 2:
                     app_state = EXIT_APP;
@@ -340,7 +338,7 @@ static void check_the_buttons(void)
         }
 
         // if the back button is pressed we will return to the main menu
-        if(back == 1)
+        if(back || menu_level == INACTIVE)
             change_menu_level(MAIN_MENU);
     }
 
@@ -358,8 +356,8 @@ static void setup_monster_menu(void)
     current_monster = 0;
 
     for(i = 0; i < nmonsters; i++){
-		if(monsters[i].status == 1)
-			menu_add_item(monsters[i].name, RENDER_MONSTER, i);
+        if(monsters[i].status)
+            menu_add_item(monsters[i].name, RENDER_MONSTER, i);
     }
 
     menu_add_item("back", RENDER_SCREEN, 0);
@@ -398,8 +396,8 @@ static void app_init(void)
     smiley_x = SCREEN_XDIM / 2;
     smiley_y = SCREEN_XDIM / 2;
     nmonsters = ARRAYSIZE(monsters);
-	int initial_mon = BADGE_ID % nmonsters;
-	enable_monster(initial_mon);
+    int initial_mon = BADGE_ID % nmonsters;
+    enable_monster(initial_mon);
 }
 
 int badge_monsters_cb(void)
