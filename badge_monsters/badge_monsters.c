@@ -80,31 +80,12 @@ static struct point othermon_points[] =
 } monsters[] = {
     {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
     {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
+    {"smileymon", ARRAYSIZE(smiley_points), 1, RED, smiley_points},
     {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
     {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
+    {"smileymon", ARRAYSIZE(smiley_points), 0, WHITE, smiley_points},
     {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 0, othermon_points},
-    {"othermon", ARRAYSIZE(smiley_points), 0, 1, othermon_points},
-    {"smileymon", ARRAYSIZE(smiley_points), 0, 1, smiley_points},
+    {"othermon", ARRAYSIZE(smiley_points), 0, WHITE, othermon_points},
 };
 
 static void draw_object(struct point drawing[], int npoints, int color, int x, int y)
@@ -253,7 +234,6 @@ static void change_menu_level(enum menu_level_t level){
             setup_monster_menu();
             break;
     }
-    // app_state = GAME_MENU;
 }
 
 static void enable_monster(int monster_id){
@@ -296,8 +276,8 @@ static void render_screen(void)
 static void print_menu_info(void){
     // int next_state = menu.item[menu.current_item].next_state
     system("clear");
-    printf("current item: %d\nmenu level: %d\ncurrent monster: %d\n menu item: %s\nn-menu-items: %d\n",
-    menu.current_item, menu_level, current_monster, menu.item[menu.current_item].text, menu.nitems);
+    printf("current item: %d\nmenu level: %d\ncurrent monster: %d\n menu item: %s\nn-menu-items: %d\ncookie_monster: %d\n",
+    menu.current_item, menu_level, current_monster, menu.item[menu.current_item].text, menu.nitems, menu.item[menu.current_item].cookie);
 }
 #endif
 
@@ -311,7 +291,7 @@ static void check_the_buttons(void)
         something_changed = 1;
         menu_change_current_selection(-1);
         if(menu_level == MONSTER_MENU)
-            current_monster = menu.current_item;
+            current_monster = menu.item[menu.current_item].cookie;
         #ifdef __linux__
             print_menu_info();
         #endif
@@ -321,7 +301,7 @@ static void check_the_buttons(void)
         something_changed = 1;
         menu_change_current_selection(1);
         if(menu_level == MONSTER_MENU)
-            current_monster = menu.current_item;
+            current_monster = menu.item[menu.current_item].cookie;
         #ifdef __linux__
             print_menu_info();
         #endif
@@ -335,6 +315,7 @@ static void check_the_buttons(void)
                 back = 1;
                 something_changed = 1;
             } else {
+				something_changed = 1;
                 app_state = RENDER_MONSTER;
             }
         }
@@ -344,6 +325,7 @@ static void check_the_buttons(void)
             switch(menu.current_item){
                 case 0:
                     change_menu_level(MONSTER_MENU);
+					current_monster = menu.item[menu.current_item].cookie;
                     something_changed = 1;
                     break;
                 case 1:
