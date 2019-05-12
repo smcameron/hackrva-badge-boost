@@ -23,9 +23,9 @@ static struct powerup {
 	char obtained;
 } powerup[] = {
 #define RESILIENCE 0
-	{ "RESILIENCE", 0 },
+	{ "RESILIENCE", 0 }, /* Deadtime will be 5 seconds instead of 30 */
 #define IMMUNITY 1
-	{ "IMMUNITY", 0 },
+	{ "IMMUNITY", 0 }, /* Immunity from one hit. */
 };
 
 #define DISABLE_INTERRUPTS do { disable_interrupts(); } while (0)
@@ -535,6 +535,9 @@ static void process_hit(unsigned int packet)
 	/* Dodge via immunity? */
 	if (powerup[IMMUNITY].obtained) {
 		powerup[IMMUNITY].obtained = 0;
+#ifdef __linux__
+		fprintf(stderr, "lasertag: Used up hit immunity powerup\n");
+#endif
 		return;
 	}
 
@@ -550,6 +553,9 @@ static void process_hit(unsigned int packet)
 	if (powerup[RESILIENCE].obtained) {
 		suppress_further_hits_until = current_time + 5;
 		powerup[RESILIENCE].obtained = 0;
+#ifdef __linux__
+		fprintf(stderr, "lasertag: Used up resilience powerup\n");
+#endif
 	} else {
 		suppress_further_hits_until = current_time + 30;
 	}
@@ -560,6 +566,9 @@ static void process_vendor_powerup(unsigned int packet)
 	unsigned short badgeid = get_shooter_badge_id_bits(packet);
 	if (badgeid < 1 || badgeid > ARRAYSIZE(powerup) + 1)
 		return;
+#ifdef __linux__
+	fprintf(stderr, "lasertag: Received powerup %d\n", badgeid - 1); 
+#endif
 	setNote(70, 4000);
 	powerup[badgeid - 1].obtained = 1;
 }
