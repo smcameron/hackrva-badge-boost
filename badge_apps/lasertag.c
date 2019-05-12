@@ -18,16 +18,6 @@ code must run in.
 int argcount;
 char **arguments;
 
-static struct powerup {
-	char *name;
-	char obtained;
-} powerup[] = {
-#define RESILIENCE 0
-	{ "RESILIENCE", 0 }, /* Deadtime will be 5 seconds instead of 30 */
-#define IMMUNITY 1
-	{ "IMMUNITY", 0 }, /* Immunity from one hit. */
-};
-
 #define DISABLE_INTERRUPTS do { disable_interrupts(); } while (0)
 #define ENABLE_INTERRUPTS do { enable_interrupts(); } while (0)
 
@@ -95,6 +85,16 @@ static struct hit_table_entry {
 	unsigned char team;
 } hit_table[MAX_HIT_TABLE_ENTRIES];
 static int nhits = 0;
+
+static struct powerup {
+	char *name;
+	char obtained;
+} powerup[] = {
+#define RESILIENCE 0
+	{ "RESILIENCE", 0 }, /* Deadtime will be 5 seconds instead of 30 */
+#define IMMUNITY 1
+	{ "IMMUNITY", 0 }, /* Immunity from one hit. */
+};
 
 /* Builds up a 32 bit badge packet.
  * 1 bit for start
