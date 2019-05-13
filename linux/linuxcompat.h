@@ -81,6 +81,8 @@ void IRqueueSend(union IRpacket_u pkt);
 void register_ir_packet_callback(void (*callback)(struct IRpacket_t));
 void unregister_ir_packet_callback(void);
 
+void flareled(unsigned char r, unsigned char g, unsigned char b);
+
 #define IR_APP1 19
 #define IR_APP2 20
 #define IR_APP3 21

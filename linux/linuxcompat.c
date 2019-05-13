@@ -171,7 +171,7 @@ static GdkGC *gc = NULL;               /* our graphics context. */
 static int screen_offset_x = 0;
 static int screen_offset_y = 0;
 static gint timer_tag;
-#define NCOLORS 8 
+#define NCOLORS 9 
 GdkColor huex[NCOLORS];
 static int (*badge_function)(void);
 static int time_to_quit = 0;
@@ -766,8 +766,10 @@ static gint key_press_cb(GtkWidget* widget, GdkEventKey* event, gpointer data)
 static int drawing_area_expose(GtkWidget *widget, GdkEvent *event, gpointer p)
 {
 	/* Draw the screen */
+	static int timer = 0;
 	int x, y, w, h;
 
+	timer++;
 	w = real_screen_width / SCREEN_XDIM;
 	if (w < 1)
 		w = 1;
@@ -781,6 +783,14 @@ static int drawing_area_expose(GtkWidget *widget, GdkEvent *event, gpointer p)
 			gdk_gc_set_foreground(gc, &huex[c]);
 			gdk_draw_rectangle(widget->window, gc, 1 /* filled */, x * w, y * h, w, h);
 		}
+	}
+
+	/* Draw simulated flare LED */
+	if (timer & 0x008) {
+		gdk_gc_set_foreground(gc, &huex[NCOLORS - 1]);
+		x = SCREEN_XDIM - w;
+		y = 0;
+		gdk_draw_rectangle(widget->window, gc, 1 /* filled */, x * w, y * h, w * 5, h * 5);
 	}
 	return 0;
 }
@@ -808,6 +818,15 @@ static gint drawing_area_configure(GtkWidget *w, GdkEventConfigure *event)
         cliprect.height = real_screen_height;
         gdk_gc_set_clip_rectangle(gc, &cliprect);
 	return TRUE;
+}
+
+void flareled(unsigned char r, unsigned char g, unsigned char b)
+{
+	gdk_colormap_free_colors(gtk_widget_get_colormap(drawing_area), &huex[NCOLORS - 1], 1);
+	huex[NCOLORS - 1].red = (unsigned short) r * 256;
+	huex[NCOLORS - 1].green = (unsigned short) g * 256;
+	huex[NCOLORS - 1].blue = (unsigned short) b * 256;
+	gdk_colormap_alloc_color(gtk_widget_get_colormap(drawing_area), &huex[NCOLORS - 1], FALSE, FALSE);
 }
 
 static void setup_gtk_colors(void)
@@ -883,6 +902,7 @@ void start_gtk(int *argc, char ***argv, int (*main_badge_function)(void), int ca
 	setup_gtk_colors();
 	setup_gtk_window_and_drawing_area(&window, &vbox, &drawing_area);
 	badge_function = main_badge_function;
+	flareled(0, 0, 0);
 	timer_tag = g_timeout_add(1000 / callback_hz, advance_game, NULL);
 
 #if 0
