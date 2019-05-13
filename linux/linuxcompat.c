@@ -157,7 +157,7 @@ const unsigned char font8x8_bits[] = {
    0x00, 0x00, 0x00, 0x00 };
 #endif
 
-struct sysData_t G_sysData = { 111 /* badge ID */ };
+struct sysData_t G_sysData = { 1 /* badge ID */ };
 int IRpacketOutNext;
 int IRpacketOutCurr;
 
