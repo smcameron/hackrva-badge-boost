@@ -9,8 +9,9 @@ APPDIR=badge_apps
 IRXMIT=irxmit
 LASERTAG=lasertag
 MAZE=maze
+USERNAME=username
 
-all:	sample_app/sample_app ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} ${APPDIR}/${MAZE}
+all:	sample_app/sample_app ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} ${APPDIR}/${MAZE} ${APPDIR}/${USERNAME}
 
 sample_app/sample_app:	sample_app/sample_app.c sample_app/smiley.h linux/linuxcompat.o linux/bline.o ${LINUX_OBJS}
 	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o sample_app/sample_app sample_app/sample_app.c ${GTKLDFLAGS}
@@ -44,6 +45,9 @@ ${APPDIR}/${MAZE}:	${APPDIR}/${MAZE}.c linux/linuxcompat.o linux/bline.o ${APPDI
 			${APPDIR}/sword_points.h \
 			${APPDIR}/up_ladder_points.h
 	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o ${APPDIR}/${MAZE} ${APPDIR}/${MAZE}.c ${GTKLDFLAGS}
+
+${APPDIR}/${USERNAME}:	${APPDIR}/${USERNAME}.c
+	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o ${APPDIR}/${USERNAME} ${APPDIR}/${USERNAME}.c ${GTKLDFLAGS}
 
 linux/linuxcompat.o:	linux/linuxcompat.c linux/linuxcompat.h
 	$(CC) ${CFLAGS} ${GTKCFLAGS} -c -I linux linux/linuxcompat.c -o linux/linuxcompat.o
