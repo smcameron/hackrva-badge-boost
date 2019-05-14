@@ -91,3 +91,4 @@ void flareled(unsigned char r, unsigned char g, unsigned char b);
 #define IR_APP6 24
 #define IR_APP7 25
 
+extern char username[10];
