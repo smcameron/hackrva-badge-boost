@@ -953,3 +953,5 @@ int right_btn_and_consume()
 void setNote(__attribute__((unused)) int note, __attribute__((unused)) int duration)
 {
 }
+
+char username[10] = { 'T', 'E', 'S', 'T', 'U', 'S', 'E', 'R', 0, 0 };
