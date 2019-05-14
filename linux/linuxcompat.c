@@ -954,4 +954,4 @@ void setNote(__attribute__((unused)) int note, __attribute__((unused)) int durat
 {
 }
 
-char username[10] = { 'T', 'E', 'S', 'T', 'U', 'S', 'E', 'R', 0, 0 };
+char username[10] = "TESTUSER\0\0";
