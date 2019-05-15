@@ -11,10 +11,13 @@ LASERTAG=lasertag
 MAZE=maze
 USERNAME=username
 
-all:	sample_app/sample_app ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} ${APPDIR}/${MAZE} ${APPDIR}/${USERNAME}
+all:	sample_app/sample_app ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} ${APPDIR}/${MAZE} ${APPDIR}/${USERNAME} badge_monsters/badge_monsters badge_monsters/fixup_monster
 
 badge_monsters/badge_monsters:	badge_monsters/badge_monsters.c badge_monsters/smileymon.h linux/linuxcompat.o linux/bline.o ${LINUX_OBJS}
 	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -I badge_monsters -o badge_monsters/badge_monsters badge_monsters/badge_monsters.c ${GTKLDFLAGS}
+
+badge_monsters/fixup_monster:	badge_monsters/fixup_monster.c
+	$(CC) ${CFLAGS} -o badge_monsters/fixup_monster badge_monsters/fixup_monster.c 
 
 sample_app/sample_app:	sample_app/sample_app.c sample_app/smiley.h linux/linuxcompat.o linux/bline.o ${LINUX_OBJS}
 	$(CC) ${CFLAGS} ${GTKCFLAGS} ${LINUX_OBJS} -o sample_app/sample_app sample_app/sample_app.c ${GTKLDFLAGS}
@@ -63,5 +66,6 @@ ${APPDIR}/achievements.o:	${APPDIR}/achievements.c ${APPDIR}/achievements.h
 
 
 clean:
-	rm -f *.o */*.o sample_app/sample_app ${APPDIR}/*.o ${APPDIR}/${MAZE} ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} badge_monsters/badge_monsters badge_monsters/*.o
+	rm -f *.o */*.o sample_app/sample_app ${APPDIR}/*.o ${APPDIR}/${MAZE} ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} \
+		badge_monsters/badge_monsters badge_monsters/*.o badge_monsters/fixup_monster
 
