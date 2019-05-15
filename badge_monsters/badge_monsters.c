@@ -416,7 +416,7 @@ static void app_init(void)
     smiley_x = SCREEN_XDIM / 2;
     smiley_y = SCREEN_XDIM / 2;
     nmonsters = ARRAYSIZE(monsters);
-	int initial_mon = nmonsters % BADGE_ID - 1;
+	int initial_mon = BADGE_ID % nmonsters;
 	enable_monster(initial_mon);
 }
 
