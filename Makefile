@@ -63,5 +63,5 @@ ${APPDIR}/achievements.o:	${APPDIR}/achievements.c ${APPDIR}/achievements.h
 
 
 clean:
-	rm -f *.o */*.o sample_app/sample_app ${APPDIR}/*.o ${APPDIR}/${MAZE} ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG}
+	rm -f *.o */*.o sample_app/sample_app ${APPDIR}/*.o ${APPDIR}/${MAZE} ${APPDIR}/${IRXMIT} ${APPDIR}/${LASERTAG} badge_monsters/badge_monsters badge_monsters/*.o
 
