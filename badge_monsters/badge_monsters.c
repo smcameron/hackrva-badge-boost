@@ -72,7 +72,7 @@ static int nmonsters = 0;
 static int nvendor_monsters = 0;
 static int app_state = INIT_APP_STATE;
 
-static struct point
+struct point
 {
     signed char x, y;
 };
@@ -84,7 +84,7 @@ static struct point freshmon_points[] =
 static struct point othermon_points[] =
 #include "othermon.h"
 
-static struct monster
+struct monster
 {
     char name[20];
     int npoints;
@@ -224,7 +224,6 @@ static void process_packet(unsigned int packet)
 {
     unsigned int payload;
     unsigned char opcode;
-    int v;
 
     if (packet == 32) /* Ignore spurious 32 that might come in. */
         return;
@@ -384,7 +383,7 @@ static void change_menu_level(enum menu_level_t level)
 static void show_message(char *message)
 {
     #ifdef __linux__
-        printf(message);
+        printf("%s\n", message);
     #endif
 
     FbClear();
@@ -397,7 +396,7 @@ static void show_message(char *message)
     screen_changed = 1;
 }
 
-// stage_monster_trade -- should start listening and receiving IR
+/* stage_monster_trade -- should start listening and receiving IR */
 static void stage_monster_trade(void)
 {
     show_message("Sync your badge with someone to collect more     monsters\n");
@@ -407,18 +406,18 @@ static void render_monster(void)
 {
     int npoints, color;
     struct point *drawing;
-    char *name;
+    /* char *name; */
 
     if(current_monster > 100)
     {
-        name = vendor_monsters[current_monster-100].name;
+        /* name = vendor_monsters[current_monster-100].name; */
         drawing = vendor_monsters[current_monster-100].drawing;
         npoints = vendor_monsters[current_monster-100].npoints;
         color = vendor_monsters[current_monster-100].color;
     }
     else
     {
-        name = monsters[current_monster].name;
+        /* name = monsters[current_monster].name; */
         drawing = monsters[current_monster].drawing;
         npoints = monsters[current_monster].npoints;
         color = monsters[current_monster].color;
@@ -426,7 +425,7 @@ static void render_monster(void)
 
 
     FbClear();
-    // FbWriteLine(name);
+    /* FbWriteLine(name); */
     FbWriteLine("\n");
     draw_object(drawing, npoints, color, smiley_x, smiley_y);
 
@@ -450,8 +449,8 @@ static void render_screen(void)
 #ifdef __linux__
 static void print_menu_info(void)
 {
-    // int next_state = menu.item[menu.current_item].next_state
-    // system("clear");
+    /* int next_state = menu.item[menu.current_item].next_state
+       system("clear"); */
     printf("current item: %d\nmenu level: %d\ncurrent monster: %d\n menu item: %s\nn-menu-items: %d\ncookie_monster: %d\n",
     menu.current_item, menu_level, current_monster, menu.item[menu.current_item].text, menu.nitems, menu.item[menu.current_item].cookie);
 }
@@ -536,7 +535,7 @@ static void check_the_buttons(void)
             }
         }
 
-        // if the back button is pressed we will return to the main menu
+        /* if the back button is pressed we will return to the main menu */
         if(back || menu_level == INACTIVE)
             change_menu_level(MAIN_MENU);
     }
@@ -608,6 +607,8 @@ static void ir_packet_callback(struct IRpacket_t packet)
 
 static void app_init(void)
 {
+    int initial_mon;
+
     FbInit();
     app_state = INIT_APP_STATE;
     register_ir_packet_callback(ir_packet_callback);
@@ -619,7 +620,7 @@ static void app_init(void)
     smiley_y = SCREEN_XDIM / 2;
     nmonsters = ARRAYSIZE(monsters);
     nvendor_monsters = ARRAYSIZE(vendor_monsters);
-    int initial_mon = BADGE_ID % nmonsters;
+    initial_mon = BADGE_ID % nmonsters;
     enable_monster(initial_mon);
 }
 
