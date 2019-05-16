@@ -103,13 +103,13 @@ static const struct point smiley_points[] =
 static const struct point freshmon_points[] =
 #include "freshmon.h"
 static const struct point othermon_points[] =
-#include "fixed_othermon.h"
+#include "othermon.h"
 static const struct point mcturtle_points[] =
 #include "mcturtle.h"
 static const struct point goat_mon_points[] =
 #include "goat_mon.h"
 static const struct point hrvamon_points[] =
-#include "fixed_hrvamon.h"
+#include "hrvamon.h"
 static const struct point octomon_points[] =
 #include "octomon.h"
 static const struct point zombieload_points[] =
