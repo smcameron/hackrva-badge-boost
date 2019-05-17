@@ -84,6 +84,7 @@ enum maze_program_state_t {
     MAZE_DROP_OBJECT,
     MAZE_THROW_GRENADE,
     MAZE_WIN_CONDITION,
+    MAZE_READ_SCROLL,
     MAZE_EXIT,
 };
 static enum maze_program_state_t maze_program_state = MAZE_GAME_INIT;
@@ -195,6 +196,34 @@ static struct weapon_descriptor {
  { "FLAMING", "SCIMITAR", 0, 0, 27 },
  { "ELECTRO", "CUTLASS", 0, 0, 30 },
 };
+
+static struct scroll_t {
+	char text1[20];
+	char text2[20];
+	char text3[20];
+} scroll[] = {
+	{
+		"MAD SCRIBBLINGS",
+		"OF AN INSANE",
+		"WIZARD:LASERTAG",
+	},
+	{
+		"CRYPTICALLY",
+		"IT SAYS,",
+		"'XYZZY'",
+	},
+	{
+		"MADNESS AWAITS",
+		"WHO ENTERS!",
+		"TURN BACK!",
+	},
+	{
+		"BEWARE THE",
+		"JABBERWOCK,",
+		"MY SON!",
+	},
+};
+#define NSCROLLS (ARRAYSIZE(scroll))
 
 static struct armor_descriptor {
     char *adjective;
@@ -1040,6 +1069,8 @@ static void maze_button_pressed(void)
     int droppable_object_count = 0;
     int grenade_count = 0;
     int grenade_number = -1;
+    int scroll_count = 0;
+    int scroll_number = -1;
 
     if (game_is_won) {
         maze_program_state = MAZE_GAME_INIT;
@@ -1090,6 +1121,11 @@ static void maze_button_pressed(void)
            grenade_count++;
 	   grenade_number = i;
 	}
+	if (maze_object[i].x == 255 &&
+           maze_object_template[maze_object[i].type].category == MAZE_OBJECT_SCROLL) {
+           scroll_count++;
+	   scroll_number = i;
+	}
         if (maze_object[i].x == newx && maze_object[i].y == newy &&
             maze_object_template[maze_object[i].type].category == MAZE_OBJECT_MONSTER)
             monster_present = 1;
@@ -1108,7 +1144,7 @@ static void maze_button_pressed(void)
     maze_menu_add_item("VIEW MAP", MAZE_DRAW_MAP, 1);
     maze_menu_add_item("WIELD WEAPON", MAZE_CHOOSE_WEAPON, 1);
     maze_menu_add_item("DON ARMOR", MAZE_CHOOSE_ARMOR, 1);
-    maze_menu_add_item("READ SCROLL", MAZE_RENDER, 1);
+    maze_menu_add_item("READ SCROLL", MAZE_READ_SCROLL, scroll_number);
     maze_menu_add_item("QUAFF POTION", MAZE_CHOOSE_POTION, 1);
     maze_menu_add_item("EXIT GAME", MAZE_EXIT, 255);
     maze_menu.menu_active = 1;
@@ -1928,6 +1964,23 @@ static void maze_throw_grenade(void)
     maze_program_state = MAZE_RENDER;
 }
 
+static void maze_read_scroll(void)
+{
+    int i;
+
+    i = maze_menu.chosen_cookie;
+    if (i < 0 || i >= ARRAYSIZE(maze_object)) {
+	maze_program_state = MAZE_RENDER;
+	return;
+    }
+    maze_object[i].x = 254; /* Remove scroll from player's possession */
+    maze_object[i].y = 254;
+    encounter_text = scroll[i % NSCROLLS].text1;
+    encounter_adjective = scroll[i % NSCROLLS].text2;
+    encounter_name = scroll[i % NSCROLLS].text3;
+    maze_program_state = MAZE_RENDER;
+}
+
 int maze_cb(void)
 {
     switch (maze_program_state) {
@@ -2031,6 +2084,9 @@ int maze_cb(void)
          break;
     case MAZE_THROW_GRENADE:
          maze_throw_grenade();
+         break;
+    case MAZE_READ_SCROLL:
+         maze_read_scroll();
          break;
     case MAZE_EXIT:
         maze_program_state = MAZE_GAME_INIT;
